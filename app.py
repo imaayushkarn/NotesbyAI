@@ -160,7 +160,7 @@ def generate():
     prompt = PROMPT_TEMPLATE.format(content=study_text)
 
     try:
-        model = genai.GenerativeModel("gemini-2.5-flash")
+        model = genai.GenerativeModel("gemini-3.6-flash")
         response = model.generate_content(prompt)
         result = clean_json_response(response.text)
         return jsonify(result)
