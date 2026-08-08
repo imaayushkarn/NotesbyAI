@@ -16,7 +16,7 @@ import tempfile
 
 from flask import Flask, render_template, request, jsonify
 from dotenv import load_dotenv
-import google.generativeai as genai
+from google import genai
 from PyPDF2 import PdfReader
 import docx
 
@@ -38,8 +38,7 @@ app.config["MAX_CONTENT_LENGTH"] = 15 * 1024 * 1024  # 15 MB upload limit
 
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "")
 
-if GEMINI_API_KEY:
-    genai.configure(api_key=GEMINI_API_KEY)
+client = genai.Client(api_key=GEMINI_API_KEY) if GEMINI_API_KEY else None
 
 
 # ---------------------------------------------------------------------------
@@ -159,17 +158,43 @@ def generate():
 
     prompt = PROMPT_TEMPLATE.format(content=study_text)
 
+    # Google periodically retires older model names. Try current ones in
+    # order, and if all of those fail too, ask the API what's available
+    # right now and use that — so this keeps working even after future
+    # model retirements.
+    candidate_models = [
+        "gemini-3.6-flash",
+        "gemini-3.5-flash",
+        "gemini-2.5-flash-lite",
+        "gemini-flash-latest",
+    ]
+    last_error = None
+
+    for model_name in candidate_models:
+        try:
+            response = client.models.generate_content(model=model_name, contents=prompt)
+            result = clean_json_response(response.text)
+            return jsonify(result)
+        except json.JSONDecodeError:
+            return jsonify({
+                "error": "The AI response could not be read. Please try again."
+            }), 500
+        except Exception as exc:  # pragma: no cover
+            last_error = exc
+            continue  # this model name isn't available, try the next one
+
+    # None of our guesses worked - ask Google what IS available right now.
     try:
-        model = genai.GenerativeModel("gemini-3.6-flash")
-        response = model.generate_content(prompt)
-        result = clean_json_response(response.text)
-        return jsonify(result)
-    except json.JSONDecodeError:
-        return jsonify({
-            "error": "The AI response could not be read. Please try again."
-        }), 500
+        for m in client.models.list():
+            actions = getattr(m, "supported_actions", None) or []
+            if "generateContent" in actions:
+                response = client.models.generate_content(model=m.name, contents=prompt)
+                result = clean_json_response(response.text)
+                return jsonify(result)
     except Exception as exc:  # pragma: no cover
-        return jsonify({"error": f"Something went wrong: {exc}"}), 500
+        last_error = exc
+
+    return jsonify({"error": f"Something went wrong: {last_error}"}), 500
 
 
 if __name__ == "__main__":

@@ -14,12 +14,24 @@ it top to bottom and you'll have it running in about 10 minutes.
 ```
 ai-study-notes/
 ├── app.py                 → the backend (Python/Flask)
-├── requirements.txt       → list of packages to install
+├── requirements.txt       → runtime packages to install
+├── requirements-dev.txt   → testing/linting packages
 ├── .env.example            → template for your secret API key
+├── vercel.json             → tells Vercel how to run this app
+├── api/index.py            → entry point Vercel looks for
 ├── templates/index.html   → the webpage
 ├── static/css/style.css   → styling
 ├── static/js/script.js    → frontend logic
-└── uploads/                → temporary file storage (auto-cleaned)
+├── docs/
+│   ├── PRD.md               → product requirements
+│   ├── architecture.md      → system design
+│   └── testing.md           → testing strategy
+├── agents/study_notes_agent.md   → the AI agent, documented
+├── skills/study_notes_skill.md   → the reusable AI skill, documented
+├── AGENTS.md                → agent rules (top-level)
+├── AGENTS_AND_SKILLS.md     → how the agent + skill relate
+├── tests/test_app.py        → automated tests (mocked AI calls)
+└── .github/workflows/ci.yml → CI: lint + test on every push
 ```
 
 ---
@@ -118,6 +130,41 @@ Open that link (`http://127.0.0.1:5000`) in your browser. Your app is live!
 
 ---
 
+## Running tests & linting
+
+This project has an automated test suite (mocked AI calls, no API key
+needed) and a linter, both run automatically on GitHub via CI:
+
+```
+pip install -r requirements-dev.txt
+pytest          # run tests
+flake8 app.py tests/   # run linter
+```
+
+See `docs/testing.md` for details on what's covered.
+
+## Tagging a release (for hackathon submission)
+
+Once your app works and is pushed to GitHub, create a tagged release so
+judges can see a stable snapshot:
+
+```
+git tag -a v1.0.0 -m "Hackathon submission"
+git push origin v1.0.0
+```
+
+Then on GitHub: go to your repo → "Releases" → "Draft a new release" →
+pick the `v1.0.0` tag → publish.
+
+## Project documentation
+
+- `docs/PRD.md` — what the product does and why
+- `docs/architecture.md` — how the system is built
+- `docs/testing.md` — how it's tested
+- `AGENTS.md` / `agents/study_notes_agent.md` — the AI agent
+- `skills/study_notes_skill.md` — the reusable AI skill
+- `AGENTS_AND_SKILLS.md` — how the agent and skill fit together
+
 ## Troubleshooting
 
 | Problem | Fix |
@@ -152,4 +199,4 @@ Webpage displays them as cards, with a downloadable text file
 - Let users pick number of MCQs
 - Deploy it online (Render for the backend, since it needs Python)
 
-:)
+Good luck with your project! 🎓
